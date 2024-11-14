@@ -16,6 +16,7 @@ const ViewerComponent = ({ tileSource, zoom, pan, onViewportChange }) => {
       showNavigator: true,
     });
 
+    
     // Handle zoom and pan changes
     const syncHandler = () => {
       if (osdViewer.current) {
@@ -65,6 +66,24 @@ const OpenSeadragonSync = () => {
 
   return (
     <div>
+      <ViewerComponent
+        tileSource="https://openseadragon.github.io/example-images/highsmith/highsmith.dzi"
+        zoom={zoom}
+        pan={pan}
+        onViewportChange={handleViewportChange}
+      />
+      <ViewerComponent
+        tileSource="https://openseadragon.github.io/example-images/highsmith/highsmith.dzi"
+        zoom={zoom}
+        pan={pan}
+        onViewportChange={handleViewportChange}
+      />
+      <ViewerComponent
+        tileSource="https://openseadragon.github.io/example-images/highsmith/highsmith.dzi"
+        zoom={zoom}
+        pan={pan}
+        onViewportChange={handleViewportChange}
+      />
       <ViewerComponent
         tileSource="https://openseadragon.github.io/example-images/highsmith/highsmith.dzi"
         zoom={zoom}
