@@ -1,5 +1,5 @@
-import { createContext, useContext } from "react";
-
+import { createContext, useContext, useRef, useState } from "react";
+import OpenSeadragon from "openseadragon";
 const intialState = {
   syncState: false,
 };
@@ -8,14 +8,29 @@ const OpenSeadragonContext = createContext(intialState);
 
 const OpenSeaDragonProvider = ({ children }) => {
   const [syncState, setSyncState] = useState(false);
+  const [focusedViewPort, setFocusViewPort] = useState(null);
+  const lastStateViewPorts = useRef({});
+  const viewPorts = useRef({});
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState(new OpenSeadragon.Point(0.5, 0.5));
+
+  console.log("focusedViewPort", focusedViewPort);
   return (
     <OpenSeadragonContext.Provider
       value={{
         syncState,
         setSyncState,
+        setFocusViewPort,
+        focusedViewPort,
+        zoom,
+        setZoom,
+        pan,
+        setPan,
+        viewPorts,
+        lastStateViewPorts
       }}
     >
-      {children}
+      <>{children}</>
     </OpenSeadragonContext.Provider>
   );
 };
@@ -29,3 +44,5 @@ export const useOpenSeaDragonContext = () => {
   }
   return context;
 };
+
+export default OpenSeaDragonProvider;
