@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import OpenSeadragon from "openseadragon";
+import React, { useEffect, useRef, useState } from "react";
+import OpenSeadragon, { Point } from "openseadragon";
 import { useOpenSeaDragonContext } from "./OpenSeaDragonContext";
 
 const OpenSeadragonViewer = ({ tileSource, viewPortName }) => {
@@ -8,6 +8,7 @@ const OpenSeadragonViewer = ({ tileSource, viewPortName }) => {
 
   const {
     focusedViewPort,
+    focusedViewPortRef,
     setFocusViewPort,
     setZoom,
     setPan,
@@ -15,6 +16,8 @@ const OpenSeadragonViewer = ({ tileSource, viewPortName }) => {
     pan,
     syncState,
     viewPorts,
+    lastStateViewPorts,
+    syncStateRef,
   } = useOpenSeaDragonContext(); // Reference to store the OpenSeadragon viewer instance
 
   useEffect(() => {
@@ -26,8 +29,8 @@ const OpenSeadragonViewer = ({ tileSource, viewPortName }) => {
         Overlap: "1",
         TileSize: "256",
         Size: {
-          Width: "13920",
-          Height: "10200",
+          Width: "16920",
+          Height: "16200",
         },
       },
     };
@@ -38,6 +41,18 @@ const OpenSeadragonViewer = ({ tileSource, viewPortName }) => {
       tileSources: duomo,
       prefixUrl: "https://openseadragon.github.io/openseadragon/images/", // Set control icons URL
       defaultZoomLevel: 1, // Optional: sets the default zoom level
+      maxZoomLevel: 2,
+      defaultZoomLevel: 1, // Optional: sets the default zoom level
+      showNavigationControl: false,
+      zoomPerScroll: 1.2,
+      // immediateRender: false, // Set to false to improve performance contrary to its documentation.
+      loadTilesWithAjax: true,
+      visibilityRatio: 1.0,
+      constrainDuringPan: true,
+      gestureSettingsMouse: {
+        clickToZoom: false,
+      },
+      animationTime: 0.8,
     });
 
     // register viewer at context lvl
@@ -47,26 +62,27 @@ const OpenSeadragonViewer = ({ tileSource, viewPortName }) => {
     };
 
     const zoomHandler = (e) => {
-      setZoom(e.zoom);
       console.log(e.userData);
+      setZoom(e.zoom);
     };
     const panHandler = (e) => {
-      setPan(e.center);
       console.log(e.userData);
+      setPan(e.center);
     };
     const addZoomPanEvent = () => {
       setFocusViewPort(viewPortName);
+      focusedViewPortRef.current = viewPortName;
+      console.log("added event handler", viewPortName);
       if (osdViewer.current) {
         osdViewer.current.addHandler("zoom", zoomHandler, { viewPortName });
         osdViewer.current.addHandler("pan", panHandler, { viewPortName });
-        console.log("added handlers");
       }
     };
     const removeZoomPanHandler = () => {
+      console.log("remove event handler", viewPortName);
       if (osdViewer.current) {
         osdViewer.current.removeHandler("zoom", zoomHandler);
         osdViewer.current.removeHandler("pan", panHandler);
-        console.log("removed handlers");
       }
     };
 
@@ -87,23 +103,75 @@ const OpenSeadragonViewer = ({ tileSource, viewPortName }) => {
   }, [tileSource]); // Reinitialize if tileSource changes
 
   useEffect(() => {
-    if (syncState && osdViewer.current && viewPortName !== focusedViewPort) {
-      const currentViewPortPan = osdViewer.current.viewport.getCenter();
-      const centerOffset = currentViewPortPan.minus(pan);
-      console.log(currentViewPortPan, centerOffset, pan);
-      osdViewer.current.viewport.panTo(pan);
-      console.log("pan handlers");
+    console.log(
+      "#############",
+      syncStateRef.current &&
+        osdViewer.current &&
+        viewPortName !== focusedViewPortRef.current,
+      viewPortName
+    );
+    if (
+      syncStateRef.current &&
+      osdViewer.current &&
+      viewPortName !== focusedViewPortRef.current
+    ) {
+      const sourceViewPort =
+        lastStateViewPorts.current[focusedViewPortRef.current];
+      console.log(sourceViewPort, pan);
+      const sourcePanDiff = {
+        x: pan.x - sourceViewPort.pan.x,
+        y: pan.y - sourceViewPort.pan.y,
+      };
+      console.log(sourcePanDiff);
+      const currentTargetZoom = osdViewer.current.viewport.getZoom();
+      const sourceZoom = sourceViewPort.zoom;
+      const zoomLvl = currentTargetZoom / sourceZoom;
+      const targetPan = osdViewer.current.viewport
+        .getCenter()
+        .plus(sourcePanDiff);
+      osdViewer.current.viewport.panTo(targetPan);
+      osdViewer.current.viewport.applyConstraints(true);
+      lastStateViewPorts.current = {
+        ...lastStateViewPorts.current,
+        [viewPortName]: {
+          pan: osdViewer.current.viewport.getCenter(),
+          zoom: osdViewer.current.viewport.getZoom(),
+        },
+      };
+    } else if (
+      !syncStateRef.current ||
+      viewPortName == focusedViewPortRef.current
+    ) {
+      lastStateViewPorts.current = {
+        ...lastStateViewPorts.current,
+        [viewPortName]: {
+          pan: osdViewer.current.viewport.getCenter(),
+          zoom: osdViewer.current.viewport.getZoom(),
+        },
+      };
     }
-  }, [pan, syncState]);
+  }, [pan]);
 
   useEffect(() => {
-    if (syncState && osdViewer.current && viewPortName !== focusedViewPort) {
+    if (
+      syncStateRef.current &&
+      osdViewer.current &&
+      viewPortName !== focusedViewPortRef.current
+    ) {
       const currentViewPortZoom = osdViewer.current.viewport.getZoom();
       const newZoomChange = zoom / currentViewPortZoom;
       osdViewer.current.viewport.zoomTo(zoom);
-      console.log("zoom handlers");
+      osdViewer.current.viewport.applyConstraints(true);
+    } else if (!syncStateRef.current) {
+      lastStateViewPorts.current = {
+        ...lastStateViewPorts.current,
+        [viewPortName]: {
+          pan: osdViewer.current.viewport.getCenter(),
+          zoom: osdViewer.current.viewport.getZoom(),
+        },
+      };
     }
-  }, [zoom, syncState]);
+  }, [zoom]);
 
   return (
     <div
