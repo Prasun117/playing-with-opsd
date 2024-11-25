@@ -1,12 +1,19 @@
+import { useState, useEffect } from "react";
 import { useOpenSeaDragonContext } from "./OpenSeaDragonContext";
 
 const SyncButton = () => {
-  const { syncState, setSyncState } = useOpenSeaDragonContext();
-  const handleSync = () => {};
+  const { syncState, setSyncState, syncStateRef } = useOpenSeaDragonContext();
+  const [isSyncOn, setIsSyncOn] = useState(false);
+
   return (
     <>
-      <button onClick={() => setSyncState(!syncState)}>
-        Sync {syncState ? "on" : "off"}
+      <button
+        onClick={() => {
+          setIsSyncOn(!syncStateRef.current);
+          syncStateRef.current = !syncStateRef.current;
+        }}
+      >
+        Sync {isSyncOn ? "on" : "off"}
       </button>
     </>
   );

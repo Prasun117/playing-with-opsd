@@ -9,8 +9,10 @@ const OpenSeadragonContext = createContext(intialState);
 const OpenSeaDragonProvider = ({ children }) => {
   const [syncState, setSyncState] = useState(false);
   const [focusedViewPort, setFocusViewPort] = useState(null);
+  const focusedViewPortRef = useRef(null);
   const lastStateViewPorts = useRef({});
   const viewPorts = useRef({});
+  const syncStateRef = useRef(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState(new OpenSeadragon.Point(0.5, 0.5));
 
@@ -27,7 +29,9 @@ const OpenSeaDragonProvider = ({ children }) => {
         pan,
         setPan,
         viewPorts,
-        lastStateViewPorts
+        lastStateViewPorts,
+        syncStateRef,
+        focusedViewPortRef,
       }}
     >
       <>{children}</>
